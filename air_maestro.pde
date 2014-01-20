@@ -1,20 +1,11 @@
 import processing.video.*;
 
-// INSTRUCTIONS
-// 1. Left-click with the mouse on the first object you want to track, and drag
-//    until the translucent circle covers most of the object.
-// 2. Right-click and drag to do the same thing for the second object.
-// 3. Press space bar to toggle displaying the mask instead of the video.
-// 4. Adjust the first threshold using the up and down arrow keys until the object
-//    is mostly covered and there is a minimal amoint of noise elsewhere.
-// 5. Adjust the second threshold using the left and right arrow keys.
-// 6. Press space again and watch the tracking.
-
 final int defaultThreshold = 100;  // threshold used in the beginning
 final int thresholdAdjustment = 3; // adjustment made by arrow keys
 
 Capture video;
 Tracker tracker;
+SoundManager sound;
 boolean mask = false; // display mask (true) or video (false)
 
 int resetColor = -1;  // nonnegative: resetting nth object's color
@@ -25,11 +16,13 @@ void setup() {
   size(640, 480);
   video = new Capture(this, width, height);
   video.start();
-  // Create a Tracker that can track two objects at once.
-  tracker = new Tracker(2);
-  // Add a red object and a green object.
+  // Create a Tracker that can track one object.
+  tracker = new Tracker(1);
   tracker.track(color(210, 0, 50), defaultThreshold);
-  tracker.track(color(0, 200, 20), defaultThreshold);
+  // Create a sound manager with one track.
+  sound = new SoundManager();
+  sound.addTrack(0, 0);
+  sound.startPlaying();
 }
 
 void keyPressed() {
@@ -42,9 +35,9 @@ void keyPressed() {
     } else if (keyCode == DOWN) {
       tracker.addToThreshold(0, -n);
     } else if (keyCode == RIGHT) {
-      tracker.addToThreshold(1, n);
+      //tracker.addToThreshold(1, n);
     } else if (keyCode == LEFT) {
-      tracker.addToThreshold(1, -n);
+      //tracker.addToThreshold(1, -n);
     }
   } else if (key == 32) { // spacebar
     // Start or stop displaying the mask.
@@ -55,7 +48,8 @@ void keyPressed() {
 void mousePressed() {
   startDrag.x = mouseX;
   startDrag.y = mouseY;
-  resetColor = (mouseButton == LEFT) ? 0 : 1;
+  //resetColor = (mouseButton == LEFT) ? 0 : 1;
+  resetColor = 0;
 }
 
 void mouseReleased() {
@@ -92,6 +86,7 @@ void draw() {
       ellipse(startDrag.x, startDrag.y, radius*2, radius*2);
     }
   }
+  sound.update(0, 1.0*tracker.locations[0].y/height, 1.0*tracker.locations[0].x/width);
 }
 
 // Calculates the average of the pixel colors within the given circle.

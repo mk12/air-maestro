@@ -33,7 +33,7 @@ class SoundManager {
     this.context.out.addInput(gain);
     // Add the glides to the manager's lists.
     this.gainGlides.add(gainGlide);
-    this.frequencyGlies.add(freqGlide);
+    this.frequencyGlides.add(freqGlide);
   }
   
   // Update the nth sound track (beginning at zero) to the given pitch and volume
