@@ -52,4 +52,13 @@ class SoundManager {
   void stopPlaying() {
     this.context.stop();
   }
+  
+  // Toggles the playing state (starts or stops).
+  void togglePlaying() {
+    if (this.context.isRunning()) {
+      this.context.stop();
+    } else {
+      this.context.start();
+    }
+  }
 }
