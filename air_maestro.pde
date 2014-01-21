@@ -11,7 +11,9 @@ Tracker tracker;
 SoundManager sound;
 
 int activeBaton = 0; // the index of the currently active baton
+int nScales = 1; // number of scale divisions
 boolean mask = false; // display video (false) or mask (true)
+boolean showLines = true; // display lines to separate the scales
 PVector startDrag = new PVector(NOT_DRAGGING, 0); // center of color sample
 boolean doneDragging = false; // flag set by mouseReleased
 
@@ -19,7 +21,7 @@ boolean doneDragging = false; // flag set by mouseReleased
 void addBaton() {
   if (tracker.nObjects < maxBatons) {
     tracker.addObject(UNSET, defaultThreshold);
-    sound.addTrack(0, 0);
+    sound.addTrack(0, 0, 0);
   }
 }
 
@@ -62,6 +64,12 @@ void keyPressed() {
     addBaton();
   } else if (key == 'x') {
     removeBaton(activeBaton);
+  } else if (key == 's' && nScales > 1) {
+    showLines = !showLines;
+  } else if (key == ',') {
+    nScales = max(nScales - 1, 1);
+  } else if (key == '.') {
+    nScales = min(nScales + 1, maxScales);
   } else if (key == 32) { // space bar
     sound.togglePlaying();
   }
@@ -70,7 +78,7 @@ void keyPressed() {
 void mouseWheel(MouseEvent event) {
   // Increase the active baton's threshold or decrease it depending
   // on scroll direction.
-  tracker.addToThreshold(activeBaton, event.getCount() * thresholdAdjustment);
+  tracker.addToThreshold(activeBaton, -event.getCount() * thresholdAdjustment);
 }
 
 void mousePressed() {
@@ -116,11 +124,27 @@ void draw() {
   // Update our sound production.
   for (int i = 0; i < tracker.nObjects; i++) {
     if (tracker.locations[i].x == UNDETECTED) {
-      sound.update(i, 0, 0);
+      sound.update(i, 0, 0, 0);
     } else {
-      // TODO: Format this better.
-      sound.update(i, 1.0-tracker.locations[i].y/height, constrain(tracker.speeds[i].mag()/100, 0, 1));
+      int scale = int((width - tracker.locations[i].x) / width * nScales);
+      float pitch = 1.0 - tracker.locations[i].y/height;
+      float volume = constrain(tracker.speeds[i].mag()/50, 0, 1);
+      sound.update(i, scale, pitch, volume);
     }
+  }
+  // Draw scale lines if there are any and they want to see them.
+  if (nScales > 1 && showLines) {
+    drawScaleLines();
+  }
+}
+
+// Draws vertical lines to separate the scale columns.
+void drawScaleLines() {
+  for (int i = 1; i < nScales; i++) {
+    strokeWeight(1);
+    stroke(mask? 255 : 0);
+    int x = int((float)i / nScales * width);
+    line(x, 0, x, height);
   }
 }
 
@@ -138,7 +162,7 @@ color sampleAverage(PImage img, PVector center, int radius) {
       float distSq = PVector.sub(center, new PVector(x, y)).magSq();
       // If this point in the square lies inside the circle:
       if (distSq <= radius*radius) {
-        color c = img.pixels[y*img.width+x];
+        color c = img.pixels[(y+1)*img.width-x-1];
         // Use bit-shifting for quick access to components.
         r += c >> 16 & 0xff;
         g += c >> 8 & 0xff;

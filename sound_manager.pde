@@ -1,12 +1,22 @@
 import beads.*;
 
-final int gainGlideTime = 50;      // transition time for gain (ms)
-final int frequencyGlideTime = 50; // transition time for frequency (ms)
+final int gainGlideTime = 33;      // transition time for gain (ms)
+final int frequencyGlideTime = 33; // transition time for frequency (ms)
+final int maxScales = 6;           // maximum number of scales
 
 // Return a frequency in hertz given a pitch (value between 0 and 1,
-// where 0 represents the lowest pitch and 1 represents the highest).
-float frequencyForPitch(float pitch) {
-  return 440 + 440*pitch;
+// where 0 represents the lowest pitch and 1 represents the highest)
+// in the given scale.
+float frequency(int scale, float pitch) {
+  switch(scale) {
+    case 0: return 27.5 + 27.5*pitch;
+    case 1: return 55 + 55*pitch;
+    case 2: return 110 + 110*pitch;
+    case 3: return 220 + 220*pitch;
+    case 4: return 440 + 440*pitch;
+    case 5: return 880 + 880*pitch;
+    default: return 0;
+  }
 }
 
 // Manages multiple gliding sound tracks simultaneously.
@@ -25,10 +35,10 @@ class SoundManager {
   }
   
   // Adds a new sound track beginning with the given pitch and volume
-  // (both are values between 0 and 1).
-  void addTrack(float pitch, float volume) {
+  // (both are values between 0 and 1) in the given scale given scale (0 <= scale < nScales).
+  void addTrack(int scale, float pitch, float volume) {
     Glide gainGlide = new Glide(this.context, volume, gainGlideTime);
-    Glide freqGlide = new Glide(this.context, frequencyForPitch(pitch), frequencyGlideTime);
+    Glide freqGlide = new Glide(this.context, frequency(scale, pitch), frequencyGlideTime);
     WavePlayer player = new WavePlayer(this.context, freqGlide, Buffer.SINE);
     Gain gain = new Gain(this.context, 1, gainGlide);
     gain.addInput(player);
@@ -48,10 +58,10 @@ class SoundManager {
   }
   
   // Update the nth sound track (beginning at zero) to the given pitch and volume
-  // (both are values between 0 and 1).
-  void update(int n, float pitch, float volume) {
+  // (both are values between 0 and 1) in the given scale (0 <= scale < nScales).
+  void update(int n, int scale, float pitch, float volume) {
     gainGlides.get(n).setValue(volume);
-    frequencyGlides.get(n).setValue(frequencyForPitch(pitch));
+    frequencyGlides.get(n).setValue(frequency(scale, pitch));
   }
   
   // Begin playing all sound tracks.

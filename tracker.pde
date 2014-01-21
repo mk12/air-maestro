@@ -5,7 +5,7 @@ final int circleMargin = 10;  // distance from edge for uninitialized/undetected
 final int normalStroke = 1;   // stroke width for an object's circle
 final int activeStroke = 3;   // stroke width for an active object's circle
 final int UNDETECTED = -1;    // x-value used to represent an absence of location
-final color UNSET = color(0); // color used to represent an uninitialized object
+final color UNSET = color(255); // color used to represent an uninitialized object
 
 // Returns the sum of the components of the absolute difference
 // of colors c1 and c2.
@@ -84,9 +84,10 @@ class Tracker {
       for (int x = 0; x < img.width; x++) {
         // Convert the 2D coordinates to an index into the flat pixels array.
         int index = y * img.width + x;
+        int mirroredIndex = (y + 1) * img.width - x - 1;
         color c = video.pixels[index];
         // Copy the pixel to screen only if we are not displaying the mask.
-        pixels[index] = mask? color(0) : c;
+        pixels[mirroredIndex] = mask? color(0) : c;
         for (int i = 0; i < this.nObjects; i++) {
           // Skip uninitialized objects.
           if (this.colors[i] == UNSET) {
@@ -98,7 +99,7 @@ class Tracker {
             ySums[i] += y;
             nPoints[i]++;
             if (mask) {
-              pixels[index] = this.colors[i];
+              pixels[mirroredIndex] = this.colors[i];
             }
           }
         }
@@ -108,6 +109,9 @@ class Tracker {
     // Divide the sums to obtain the average coordinates for each object.
     // If there are insufficient points, mark the object as undetected.
     for (int i = 0; i < this.nObjects; i++) {
+      if (this.colors[i] == UNSET) {
+        continue;
+      }
       if (nPoints[i] >= minPoints) {
         float x = xSums[i] / nPoints[i];
         float y = ySums[i] / nPoints[i];
@@ -139,7 +143,7 @@ class Tracker {
         ellipse(width - circleMargin - nRight*cs, circleMargin, cs, cs);
         nRight++;
       } else {
-        ellipse(p.x, p.y, cs, cs);
+        ellipse(width - p.x, p.y, cs, cs);
       }
     }
   }
