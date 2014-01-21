@@ -12,12 +12,14 @@ float frequencyForPitch(float pitch) {
 // Manages multiple gliding sound tracks simultaneously.
 class SoundManager {
   AudioContext context;
+  ArrayList<Gain> gains;
   ArrayList<Glide> gainGlides;      // for changing gain values on the fly
   ArrayList<Glide> frequencyGlides; // for changing frequency values on the fly
   
   // Create a new empty sound manger (no sound tracks).
   SoundManager() {
     this.context = new AudioContext();
+    this.gains = new ArrayList<Gain>();
     this.gainGlides = new ArrayList<Glide>();
     this.frequencyGlides = new ArrayList<Glide>();
   }
@@ -32,8 +34,17 @@ class SoundManager {
     gain.addInput(player);
     this.context.out.addInput(gain);
     // Add the glides to the manager's lists.
+    this.gains.add(gain);
     this.gainGlides.add(gainGlide);
     this.frequencyGlides.add(freqGlide);
+  }
+  
+  // Removes the nth track from the manager.
+  void removeTrack(int n) {
+    this.gains.get(n).kill();
+    this.gains.remove(n);
+    this.gainGlides.remove(n);
+    this.frequencyGlides.remove(n);
   }
   
   // Update the nth sound track (beginning at zero) to the given pitch and volume
