@@ -1,32 +1,26 @@
+// Copyright 2014 Mitchell Kember and Aaron Bungay. Subject to the MIT License.
+
 import beads.*;
 
-final int gainGlideTime = 33;      // transition time for gain (ms)
-final int frequencyGlideTime = 33; // transition time for frequency (ms)
-final int maxScales = 6;           // maximum number of scales
+final int kGainGlideTime = 33;      // transition time for gain (ms)
+final int kFrequencyGlideTime = 33; // transition time for frequency (ms)
+final int kMaxScales = 6;           // maximum number of scale divisions
 
 // Return a frequency in hertz given a pitch (value between 0 and 1,
 // where 0 represents the lowest pitch and 1 represents the highest)
-// in the given scale.
+// in the given scale (nonnegative integer).
 float frequency(int scale, float pitch) {
-  switch(scale) {
-    case 0: return 27.5 + 27.5*pitch;
-    case 1: return 55 + 55*pitch;
-    case 2: return 110 + 110*pitch;
-    case 3: return 220 + 220*pitch;
-    case 4: return 440 + 440*pitch;
-    case 5: return 880 + 880*pitch;
-    default: return 0;
-  }
+  return 27.5 * pow(2, scale + pitch);
 }
 
 // Manages multiple gliding sound tracks simultaneously.
 class SoundManager {
   AudioContext context;
-  ArrayList<Gain> gains;
+  ArrayList<Gain> gains;            // references needed for killing later
   ArrayList<Glide> gainGlides;      // for changing gain values on the fly
   ArrayList<Glide> frequencyGlides; // for changing frequency values on the fly
   
-  // Create a new empty sound manger (no sound tracks).
+  // Creates a new empty sound manger (no sound tracks).
   SoundManager() {
     this.context = new AudioContext();
     this.gains = new ArrayList<Gain>();
@@ -35,10 +29,10 @@ class SoundManager {
   }
   
   // Adds a new sound track beginning with the given pitch and volume
-  // (both are values between 0 and 1) in the given scale given scale (0 <= scale < nScales).
+  // (both are values between 0 and 1) in the given scale (nonnegative integer).
   void addTrack(int scale, float pitch, float volume) {
-    Glide gainGlide = new Glide(this.context, volume, gainGlideTime);
-    Glide freqGlide = new Glide(this.context, frequency(scale, pitch), frequencyGlideTime);
+    Glide gainGlide = new Glide(this.context, volume, kGainGlideTime);
+    Glide freqGlide = new Glide(this.context, frequency(scale, pitch), kFrequencyGlideTime);
     WavePlayer player = new WavePlayer(this.context, freqGlide, Buffer.SINE);
     Gain gain = new Gain(this.context, 1, gainGlide);
     gain.addInput(player);
@@ -51,25 +45,26 @@ class SoundManager {
   
   // Removes the nth track from the manager.
   void removeTrack(int n) {
+    // Kill it first. This will let the context know that we're done with it.
     this.gains.get(n).kill();
     this.gains.remove(n);
     this.gainGlides.remove(n);
     this.frequencyGlides.remove(n);
   }
   
-  // Update the nth sound track (beginning at zero) to the given pitch and volume
-  // (both are values between 0 and 1) in the given scale (0 <= scale < nScales).
+  // Updates the nth sound track (beginning at zero) to the given pitch and volume
+  // (both are values between 0 and 1) in the given scale (nonnegative integer).
   void update(int n, int scale, float pitch, float volume) {
     gainGlides.get(n).setValue(volume);
     frequencyGlides.get(n).setValue(frequency(scale, pitch));
   }
   
-  // Begin playing all sound tracks.
+  // Begins playing all sound tracks.
   void startPlaying() {
     this.context.start();
   }
   
-  // Stop playing all sound tracks.
+  // Stops playing all sound tracks.
   void stopPlaying() {
     this.context.stop();
   }
