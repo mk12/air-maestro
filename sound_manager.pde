@@ -9,6 +9,11 @@ final int kDefaultNScales = 4;      // initial number of scale divisions
 final int kLowestFrequency = 110;   // the frequency for scale=0, pitch=0
 final float kDefaultVolume = 0.3;   // default volume that hasn't been made louder
 
+final int kShapeSine = 0;   // smooth, like a theremin
+final int kShapeSquare = 1; // harsher than triangle (which doesn't work)
+final int kShapeNoise = 2;  // white noise (static)
+final int kShapeSaw = 3;    // painful
+
 // Return a frequency in hertz given a pitch (value between 0 and 1,
 // where 0 represents the lowest pitch and 1 represents the highest)
 // in the given scale (nonnegative integer).
@@ -20,6 +25,7 @@ float frequency(int scale, float pitch) {
 class SoundManager {
   AudioContext context;
   ArrayList<Gain> gains;            // references needed for killing later
+  ArrayList<WavePlayer> players;    // needed for changing buffers
   ArrayList<Glide> gainGlides;      // for changing gain values on the fly
   ArrayList<Glide> frequencyGlides; // for changing frequency values on the fly
   ArrayList<Float> volumeLevels;    // main volume level saved for each track
@@ -28,6 +34,7 @@ class SoundManager {
   SoundManager() {
     this.context = new AudioContext();
     this.gains = new ArrayList<Gain>();
+    this.players = new ArrayList<WavePlayer>();
     this.gainGlides = new ArrayList<Glide>();
     this.frequencyGlides = new ArrayList<Glide>();
     this.volumeLevels = new ArrayList<Float>();
@@ -51,6 +58,7 @@ class SoundManager {
     this.context.out.addInput(gain);
     // Add the glides to the manager's lists.
     this.gains.add(gain);
+    this.players.add(player);
     this.gainGlides.add(gainGlide);
     this.frequencyGlides.add(freqGlide);
     this.volumeLevels.add(new Float(volume));
@@ -63,8 +71,21 @@ class SoundManager {
     // Kill it. This will let the context know that we're done with it.
     this.gains.get(n).kill();
     this.gains.remove(n);
+    this.players.remove(n);
     this.gainGlides.remove(n);
     this.frequencyGlides.remove(n);
+    this.volumeLevels.remove(n);
+  }
+  
+  // Changes the nth sound track to use the given wave shape.
+  void setWaveShape(int n, int shape) {
+    WavePlayer player = this.players.get(n);
+    switch (shape) {
+      case kShapeSine: player.setBuffer(Buffer.SINE); break;
+      case kShapeSquare: player.setBuffer(Buffer.SQUARE); break;
+      case kShapeNoise: player.setBuffer(Buffer.NOISE); break;
+      case kShapeSaw: player.setBuffer(Buffer.SAW); break;
+    }
   }
   
   // Updates the nth sound track to the given pitch (value between 0 and 1)

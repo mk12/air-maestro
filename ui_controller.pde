@@ -103,6 +103,11 @@ class UIController {
     this.sound.setVolume(this.activeBaton, v);
   }
   
+  // Changes the active baton's wave shape (possible values are in sound_manager.pde).
+  void setActiveWaveShape(int shape) {
+    this.sound.setWaveShape(this.activeBaton, shape);
+  }
+  
   // Increases the number of scale divisions by one, noy exceeding kMaxScales.
   void addScale() {
     this.nScales = min(this.nScales + 1, kMaxScales);

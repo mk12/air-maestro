@@ -10,6 +10,7 @@
 // [left/right] cycle the active baton
 // [x] delete the active baton
 // [1-9] change the active baton's volume
+// [q/w/e/r] set wave shape to sine/square/noise/saw
 // [,] decrease number of scales
 // [,] increase number of scales
 // [s] toggle showing scale lines on screen
@@ -54,6 +55,10 @@ void keyPressed() {
       case ' ': controller.toggleSound(); break;
       case ',': controller.removeScale(); break;
       case '.': controller.addScale(); break;
+      case 'q': controller.setActiveWaveShape(kShapeSine); break;
+      case 'w': controller.setActiveWaveShape(kShapeSquare); break;
+      case 'e': controller.setActiveWaveShape(kShapeNoise); break;
+      case 'r': controller.setActiveWaveShape(kShapeSaw); break;
     }
   }
 }
