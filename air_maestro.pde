@@ -1,5 +1,19 @@
 // Copyright 2014 Mitchell Kember and Aaron Bungay. Subject to the MIT License.
 
+// INSTRUCTIONS
+// (See the instructions page on the website for more details.)
+// [drag] cover the baton with the circle to set its colour
+// [z] toggle between video mode and mask mode
+// [scroll] change the baton's threshold
+// [space] start/stop playing sound
+// [a] add another baton
+// [left/right] cycle the active baton
+// [x] delete the active baton
+// [1-9] change the active baton's volume
+// [,] decrease number of scales
+// [,] increase number of scales
+// [s] toggle showing scale lines on screen
+
 import processing.video.*;
 
 Capture video;
@@ -16,12 +30,15 @@ void setup() {
 void draw() {
   if (video.available()) {
     video.read();
-    controller.draw(video);
+    controller.trackAndDraw(video);
+    controller.updateSound();
   }
 }
 
 void keyPressed() {
-  if (key == CODED) {
+  if (key >= '1' && key <= '9') {
+    controller.setActiveVolume((key - '0') / 9.0);
+  } else if (key == CODED) {
     switch (keyCode) {
       case DOWN: controller.adjustActiveThreshold(-1); break;
       case UP: controller.adjustActiveThreshold(+1); break;

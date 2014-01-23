@@ -1,13 +1,14 @@
 // Copyright 2014 Mitchell Kember and Aaron Bungay. Subject to the MIT License.
 
-final int kMinPoints = 100;     // minimum points to consider an object detected
-final int kMaxThreshold = 300;  // upper limit for an object's threshold
-final int kCircleSize = 10;     // size of the indicator circle (pixels)
-final int kCircleMargin = 10;   // distance from the edge for corner circles (pixels)
-final int kNormalStroke = 1;    // stroke width for an object's circle
-final int kActiveStroke = 3;    // stroke width for an active object's circle
-final int UNDETECTED = -1;      // x-value representing an absence of location
-final color UNSET = color(255); // color used to represent an uninitialized object
+final int kMinPoints = 100;        // minimum points to consider an object detected
+final int kDefaultThreshold = 100; // object threshold used by default
+final int kMaxThreshold = 300;     // upper limit for an object's threshold
+final int kCircleSize = 10;        // size of the indicator circle (pixels)
+final int kCircleMargin = 10;      // distance from the edge for corner circles (pixels)
+final int kNormalStroke = 1;       // stroke width for an object's circle
+final int kActiveStroke = 3;       // stroke width for an active object's circle
+final int UNDETECTED = -1;         // x-value representing an absence of location
+final color UNSET = color(255);    // color used to represent an uninitialized object
 
 // Returns the total difference between c1 and c2; that is, the sum
 // of the component differences: |r1-r2| + |g1-g2| + |b1-b2|.
@@ -19,12 +20,11 @@ int totalDifference(color c1, color c2) {
   return abs(r) + abs(g) + abs(b);
 }
 
-// Tracks the locations and speeds of multiple objects by colour in live video.
+// Tracks the locations of multiple objects by colour in live video.
 // Each object is described with two values: a colour and a threshold. The colour
 // should be fairly representative of the entire object, and the threshold represents
 // the amount of deviation from the main colour allowed. Each time the scan method
-// is called, Tracker updates the location to the object's centroid (centre of mass)
-// and calculates speed based on the change in location since the last frame.
+// is called, Tracker updates the location to the object's centroid (centre of mass).
 // An object that could not be detected is represented by a location whose x-value
 // is set to UNDETECTED.
 class Tracker {
@@ -32,7 +32,6 @@ class Tracker {
   color[] colors;
   int[] thresholds;
   PVector[] locations;
-  PVector[] speeds;
   
   // Creates a new tracker with a maximum capacity of n objects.
   Tracker(int n) {
@@ -40,15 +39,18 @@ class Tracker {
     this.colors = new color[n];
     this.thresholds = new int[n];
     this.locations = new PVector[n];
-    this.speeds = new PVector[n];
-    // Populate the location and speed arrays with PVectors.
+    // Populate the location array with PVectors.
     for (int i = 0; i < n; i++) {
       this.locations[i] = new PVector(UNDETECTED, 0);
-      this.speeds[i] = new PVector(0, 0);
     }
   }
   
-  // Tracks an object with colour c using thresh as the threshold.
+  // Adds an object with uninitialized color and the default threshold.
+  void addObject() {
+    this.addObject(UNSET, kDefaultThreshold);
+  }
+  
+  // Adds an object with colour c using thresh as the threshold.
   void addObject(color c, int thresh) {
     // Add to the end of the arrays.
     this.colors[this.nObjects] = c;
@@ -82,10 +84,11 @@ class Tracker {
     this.thresholds[n] = constrain(this.thresholds[n] + delta, 0, kMaxThreshold);
   }
   
-  // Scans the given image and updates the locations and speeds of all objects.
+  // Scans the given image and updates the locations of all objects.
   // If mask is true, writes the screen pixels array with black and object
   // colors to visualize the thresholds. If mask is false, copies the video
   // pixels to the screen pixels array unchanged.
+  // Note: Accesses img.pixels using mirrored x-coordinates.
   // See the project website for a description of the algorithm used here.
   void scan(PImage img, boolean mask) {
     int[] nPoints = new int[this.nObjects]; // number of points found
@@ -94,12 +97,10 @@ class Tracker {
     loadPixels();
     for (int y = 0; y < img.height; y++) {
       for (int x = 0; x < img.width; x++) {
-        // Convert the 2D coordinates to an index into the flat pixels array.
-        int index = y * img.width + x;
-        int mirroredIndex = (y + 1) * img.width - x - 1;
-        color c = video.pixels[mirroredIndex];
+        color c = video.pixels[mirroredIndex(img, x, y)];
         // Copy the pixel to screen only if we are not displaying the mask.
-        pixels[index] = mask? color(0) : c;
+        int idx = index(img, x, y);
+        pixels[idx] = mask? color(0) : c;
         for (int i = 0; i < this.nObjects; i++) {
           // Skip uninitialized objects.
           if (this.colors[i] == UNSET) {
@@ -111,7 +112,7 @@ class Tracker {
             ySums[i] += y;
             nPoints[i]++;
             if (mask) {
-              pixels[index] = this.colors[i];
+              pixels[idx] = this.colors[i];
             }
           }
         }
@@ -121,18 +122,11 @@ class Tracker {
     // Divide the sums to obtain the average coordinates for each object.
     // If there are insufficient points, mark the object as undetected.
     for (int i = 0; i < this.nObjects; i++) {
-      // Skip uninitialized objects.
-      if (this.colors[i] == UNSET) {
-        continue;
-      }
       // If we have enough points to call this a detected object:
       if (nPoints[i] >= kMinPoints) {
-        float x = xSums[i] / nPoints[i];
-        float y = ySums[i] / nPoints[i];
-        this.speeds[i].x = x - this.locations[i].x;
-        this.speeds[i].y = y - this.locations[i].y;
-        this.locations[i].x = x;
-        this.locations[i].y = y;
+        // Calculate the centroid of the object.
+        this.locations[i].x = xSums[i] / nPoints[i];;
+        this.locations[i].y = ySums[i] / nPoints[i];
       } else {
         this.locations[i].x = UNDETECTED;
       }
@@ -160,7 +154,7 @@ class Tracker {
         nRight++;
       } else {
         // Draw detected object circles on the centroid.
-        ellipse(width - p.x, p.y, cs, cs);
+        ellipse(p.x, p.y, cs, cs);
       }
     }
   }
